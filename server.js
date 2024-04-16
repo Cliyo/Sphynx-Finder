@@ -5,7 +5,11 @@ import scanNetwork from './deviceFinder.js';
 var app = express();
 app.use(cors());
 
-app.get("/", async function (req, res) {
+const corsOptions = {
+  "Access-Control-Allow-Origin": "*"
+}
+
+app.get("/", cors(corsOptions), async function (req, res) {
     let scan = await scanNetwork();
     res.json((scan))
 });
