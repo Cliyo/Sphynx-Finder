@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import scanNetwork from './deviceFinder.js';
+import scanDevices from './deviceFinder.js';
 
 var app = express();
 app.use(cors());
@@ -10,7 +10,7 @@ const corsOptions = {
 }
 
 app.get("/", cors(corsOptions), async function (req, res) {
-    let scan = await scanNetwork();
+    let scan = scanDevices();
     res.json((scan))
 });
 
