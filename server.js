@@ -10,8 +10,9 @@ const corsOptions = {
 }
 
 app.get("/", cors(corsOptions), async function (req, res) {
-    let scan = scanDevices();
-    res.json((scan))
+    let scan = await scanDevices();
+    console.log("scan", scan)
+    res.json(scan)
 });
 
 app.listen(3000, function () {

@@ -13,31 +13,30 @@ function createDeviceList(ips, macs) {
     return devicesList;
 }
 
-function scanDevices(){
-    child_process.exec("arp -a", (error, stdout, stderr) => {
-    if (error) {
-        console.log(`error: ${error.message}`);
-        return;
-    }
-    if (stderr) {
-        console.log(`stderr: ${stderr}`);
-        return;
-    }
-    const ips = stdout.match(expRegularIP)
-    ips.forEach(function(ip, indice){
-        ip = ip.replace("(","")
-        ip = ip.replace(")","")
-        ips[indice] = ip
-    })
+async function scanDevices(){
+    return new Promise ((resolve, reject) =>{
+        child_process.exec("arp -a", (error, stdout, stderr) => {
+        if (error) {
+            console.log(`error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.log(`stderr: ${stderr}`);
+            return;
+        }
+        const ips = stdout.match(expRegularIP)
+        ips.forEach(function(ip, indice){
+            ip = ip.replace("(","")
+            ip = ip.replace(")","")
+            ips[indice] = ip
+        })
 
-    const macs = stdout.match(expRegularMAC)
+        const macs = stdout.match(expRegularMAC)
 
-    const deviceList = createDeviceList(ips,macs);
+        const devicesList = createDeviceList(ips,macs);
 
-    console.log(deviceList);
-    return deviceList
-
-
+        resolve(devicesList);
+        })
     });
 }
 
