@@ -1,7 +1,7 @@
-import child_process from "child_process"
+import {exec} from "child_process"
 
-var expRegularIP=/\((.*?)\)/g;
-var expRegularMAC=/(?:[0-9a-fA-F]:?){12}/g;
+var regexIP=/(\d+)\.(\d+)\.(\d+)\.(\d+)/g;
+var regexMAC=/(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}/g;
 
 function createDeviceList(ips, macs) {
     const devicesList = [];
@@ -15,7 +15,7 @@ function createDeviceList(ips, macs) {
 
 async function scanDevices(){
     return new Promise ((resolve, reject) =>{
-        child_process.exec("arp -a", (error, stdout, stderr) => {
+        exec("arp -a", (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             return;
@@ -24,14 +24,14 @@ async function scanDevices(){
             console.log(`stderr: ${stderr}`);
             return;
         }
-        const ips = stdout.match(expRegularIP)
+        const ips = stdout.match(regexIP)
         ips.forEach(function(ip, indice){
             ip = ip.replace("(","")
             ip = ip.replace(")","")
             ips[indice] = ip
         })
 
-        const macs = stdout.match(expRegularMAC)
+        const macs = stdout.match(regexMAC)
 
         const devicesList = createDeviceList(ips,macs);
 
