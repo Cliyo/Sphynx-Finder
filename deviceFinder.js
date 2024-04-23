@@ -1,4 +1,4 @@
-import {exec, execFileSync} from "child_process"
+import {exec, spawn} from "child_process"
 import {platform} from "process"
 import {promisify} from "util"
 
@@ -47,13 +47,19 @@ export function newCache(){
     let command = "ping"
     console.log(platform)
     if (platform == "win32"){
-        command = "./ping.ps1"
+        command = "powershell.exe -File ./ping.ps1"
     }else{
-        command = "./ping.sh"
+        command = "sh ./ping.sh"
     }
-    // let executar = promisify(execFile)
-    // const { stdout } = await executar(command);
-    const {stdout} = execFileSync(command);
-    console.log(stdout);
+    return new Promise ((resolve, reject) =>{
+    	exec(command, (error, stdout, stderr) => {
+  		if (error) {
+    			console.error(`Erro ao executar o script: ${error}`);
+    			return;
+  		}
+  		console.log(`Saída do script: ${stdout}`);
+		resolve();
+    	});
+    });
 }
 

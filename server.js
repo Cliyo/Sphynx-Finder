@@ -10,7 +10,7 @@ const corsOptions = {
 }
 
 app.get("/", cors(corsOptions), async function (req, res) {
-    let ping = newCache();
+    let ping = await newCache();
     let scan = await scanDevices();
     console.log("scan", scan)
     res.json(scan)
