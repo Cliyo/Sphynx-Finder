@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import scanDevices from './deviceFinder.js';
+import {scanDevices, newCache} from './deviceFinder.js';
 
 var app = express();
 app.use(cors());
@@ -10,6 +10,7 @@ const corsOptions = {
 }
 
 app.get("/", cors(corsOptions), async function (req, res) {
+    let ping = newCache();
     let scan = await scanDevices();
     console.log("scan", scan)
     res.json(scan)
