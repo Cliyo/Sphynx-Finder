@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import {scanDevices, newCache} from './deviceFinder.js';
+import {getAllSphynx, newCache} from './deviceFinder.js';
 
 var app = express();
 app.use(cors());
@@ -9,11 +9,13 @@ const corsOptions = {
   "Access-Control-Allow-Origin": "*"
 }
 
-app.get("/", cors(corsOptions), async function (req, res) {
-    let ping = await newCache();
-    let scan = await scanDevices();
-    console.log("scan", scan)
-    res.json(scan)
+app.get("/sphynx", cors(corsOptions), async function (req, res) {
+  await newCache();
+  let scan = await getAllSphynx();
+
+  console.log("scan", scan);
+
+  res.status(200).json(scan);
 });
 
 app.listen(3000, function () {

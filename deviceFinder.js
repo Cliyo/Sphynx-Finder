@@ -1,5 +1,6 @@
 import {exec, spawn} from "child_process"
 import {platform} from "process"
+import WebSocket from "ws";
 import {promisify} from "util"
 
 var regexIP=/(\d+)\.(\d+)\.(\d+)\.(\d+)/g;
@@ -15,7 +16,7 @@ function createDeviceList(ips, macs) {
     return devicesList;
 }
 
-export async function scanDevices(){
+async function scanDevices(){
     return new Promise ((resolve, reject) =>{
         exec("arp -a", (error, stdout, stderr) => {
         if (error) {
@@ -43,6 +44,41 @@ export async function scanDevices(){
     });
 }
 
+export async function getAllSphynx(){
+    const devices = await scanDevices();
+    const arrayEsp = [];
+
+    let connectionPromises = devices.map(async esp => {
+        try {
+            let ws = new WebSocket(`ws://${esp.ip}/ws`);
+
+            let messagePromise = new Promise((resolve, reject) => {
+                ws.onmessage = event => {
+                    if (event.data === "data") {
+                        arrayEsp.push(esp);
+                        resolve();
+                    }
+                };
+                ws.onerror = reject;
+                ws.onclose = () => {
+                    reject(new Error("Conexão com o WebSocket fechada"));
+                };
+            });
+
+            await messagePromise;
+
+        } catch (error) {
+            console.error("Erro: ", error);
+        }
+    });
+
+    await Promise.all(connectionPromises);
+
+    console.log(arrayEsp);
+
+    return arrayEsp;
+}
+
 export function newCache(){
     let command = "ping"
     console.log(platform)
@@ -62,4 +98,3 @@ export function newCache(){
     	});
     });
 }
-
