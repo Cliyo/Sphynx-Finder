@@ -18,36 +18,47 @@ function createDeviceList(ips, macs) {
 
 async function scanDevices(){
     var command = "arp"
+    var args = []
+    var options = {}
     const arpRegex = "'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})'"
+
     if (platform == "win32"){
-        command = `powershell.exe arp -a | Where-Object { $_ -match ${arpRegex} }`
+        command = "powershell.exe";
+        args.push(`arp -a | Where-Object { $_ -match ${arpRegex} }`)
+        options = { shell: false };
     }else if (platform == "linux"){
-        command = `arp -a | grep -E ${arpRegex} `
+        command = "sudo";
+        args.push(`arp -a | grep -E ${arpRegex}`)
+        options = { shell: true };
     }
+
     return new Promise ((resolve, reject) =>{
-        exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`error: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.log(`stderr: ${stderr}`);
-            return;
-        }
-        const ips = stdout.match(regexIP)
+        const arp = spawn(command, args, options);
 
-        ips.forEach(function(ip, indice){
-            ip = ip.replace("(","")
-            ip = ip.replace(")","")
-            ips[indice] = ip
-        })
+        let stdout = '';
+        let stderr = '';
 
-        const macs = stdout.match(regexMAC)
+        arp.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
 
-        const devicesList = createDeviceList(ips,macs);
+        arp.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
 
-        resolve(devicesList);
-        })
+        arp.on('close', (code) => {
+            if (code !== 0) {
+                console.error(`${code}`);
+                reject(stderr);
+                return;
+            }
+
+            const ips = stdout.match(regexIP)
+            const macs = stdout.match(regexMAC)
+
+            const devicesList = createDeviceList(ips,macs);
+            resolve(devicesList);
+        });
     });
 }
 
