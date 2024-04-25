@@ -17,8 +17,15 @@ function createDeviceList(ips, macs) {
 }
 
 async function scanDevices(){
+    var command = "arp"
+    const arpRegex = "'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})'"
+    if (platform == "win32"){
+        command = `powershell.exe arp -a | Where-Object { $_ -match ${arpRegex} }`
+    }else if (platform == "linux"){
+        command = `arp -a | grep -E ${arpRegex} `
+    }
     return new Promise ((resolve, reject) =>{
-        exec("arp -a", (error, stdout, stderr) => {
+        exec(command, (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             return;
