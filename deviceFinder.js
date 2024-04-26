@@ -71,14 +71,21 @@ export async function getAllSphynx(){
             let ws = new WebSocket(`ws://${esp.ip}/ws`);
 
             let messagePromise = new Promise((resolve, reject) => {
+                let timeout = setTimeout(() => {
+                    reject(new Error('Conexão com o WebSocket excedeu o tempo limite'));
+                    ws.close();
+                }, 5000);
+                
                 ws.onmessage = event => {
                     if (event.data === "data") {
                         arrayEsp.push(esp);
+                        clearTimeout(timeout);
                         resolve();
                     }
                 };
                 ws.onerror = reject;
                 ws.onclose = () => {
+                    clearTimeout(timeout);
                     reject(new Error("Conexão com o WebSocket fechada"));
                 };
             });
@@ -91,8 +98,6 @@ export async function getAllSphynx(){
     });
 
     await Promise.all(connectionPromises);
-
-    console.log(arrayEsp);
 
     return arrayEsp;
 }
