@@ -1,7 +1,8 @@
-import {exec, spawn} from "child_process"
-import {platform} from "process"
-import WebSocket from "ws";
-import {promisify} from "util"
+var child_process = require("child_process");
+var process = require("process");
+var websocket = require("ws");
+var dns = require('bonjour-service');
+
 
 var regexIP=/(\d+)\.(\d+)\.(\d+)\.(\d+)/g;
 var regexMAC=/(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}/g;
@@ -10,7 +11,7 @@ function createDeviceList(ips, macs) {
     const devicesList = [];
     for (let i = 0; i < ips.length; i++) {
         const ip = ips[i];
-        const mac = macs[i];
+        const mac = macs[i].toUpperCase();
         devicesList.push({ ip, mac });
     }
     return devicesList;
@@ -22,18 +23,18 @@ async function scanDevices(){
     var options = {}
     const arpRegex = "'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})'"
 
-    if (platform == "win32"){
+    if (process.platform == "win32"){
         command = "powershell.exe";
         args.push(`arp -a | Where-Object { $_ -match ${arpRegex} }`)
         options = { shell: false };
-    }else if (platform == "linux"){
+    }else if (process.platform == "linux"){
         command = "sudo";
         args.push(`arp -a | grep -E ${arpRegex}`)
         options = { shell: true };
     }
 
     return new Promise ((resolve, reject) =>{
-        const arp = spawn(command, args, options);
+        const arp = child_process.spawn(command, args, options);
 
         let stdout = '';
         let stderr = '';
@@ -62,13 +63,13 @@ async function scanDevices(){
     });
 }
 
-export async function getAllSphynx(){
+async function findByScan(){
     const devices = await scanDevices();
     const arrayEsp = [];
 
     let connectionPromises = devices.map(async esp => {
         try {
-            let ws = new WebSocket(`ws://${esp.ip}/ws`);
+            let ws = new websocket.WebSocket(`ws://${esp.ip}/ws`);
 
             let messagePromise = new Promise((resolve, reject) => {
                 let timeout = setTimeout(() => {
@@ -91,9 +92,11 @@ export async function getAllSphynx(){
             });
 
             await messagePromise;
+            return null;
 
         } catch (error) {
             console.error("Erro: ", error);
+            return null;
         }
     });
 
@@ -102,16 +105,16 @@ export async function getAllSphynx(){
     return arrayEsp;
 }
 
-export function newCache(){
+function newCache(){
     let command = "ping"
-    console.log(platform)
-    if (platform == "win32"){
+    console.log(process.platform)
+    if (process.platform == "win32"){
         command = "powershell.exe -File ./ping.ps1"
     }else{
         command = "sh ./ping.sh"
     }
     return new Promise ((resolve, reject) =>{
-    	exec(command, (error, stdout, stderr) => {
+    	child_process.exec(command, (error, stdout, stderr) => {
   		if (error) {
     			console.error(`Erro ao executar o script: ${error}`);
     			return;
@@ -121,3 +124,29 @@ export function newCache(){
     	});
     });
 }
+
+async function findByService(){
+    var service = new dns.Bonjour()
+    
+    const hostnames = []
+    const macs = []
+
+    return new Promise ((resolve, reject) =>{
+        service.find({ type: 'cliyo-sphynx' }, function (service) {
+            let timeout = setTimeout(() => {
+                const devices = createDeviceList(hostnames, macs);
+                resolve(devices);
+            }, 10000);
+            if (service.txt.mac){
+                hostnames.push(service.host);
+                macs.push(service.txt.mac);
+            }
+        })
+    });
+}
+
+module.exports = {
+    findByScan: findByScan,
+    newCache: newCache,
+    findByService: findByService
+  };
