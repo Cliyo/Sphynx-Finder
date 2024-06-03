@@ -11,7 +11,8 @@ function createDeviceList(ips, macs) {
     const devicesList = [];
     for (let i = 0; i < ips.length; i++) {
         const ip = ips[i];
-        const mac = macs[i].toUpperCase();
+        const rawMac = macs[i].toUpperCase();
+        const mac = rawMac.replace(/-/g, ":");
         devicesList.push({ ip, mac });
     }
     return devicesList;
