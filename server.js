@@ -15,6 +15,11 @@ const corsOptions = {
   "Access-Control-Allow-Origin": "*"
 }
 
+app.get("/online", cors(corsOptions), async function (req, res){
+  console.log("status requested: API ONLINE")
+  res.status(200).json()
+});
+
 app.get("/scan", cors(corsOptions), async function (req, res) {
   await finder.newCache();
 
