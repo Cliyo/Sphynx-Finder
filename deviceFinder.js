@@ -55,8 +55,8 @@ async function scanDevices(){
                 return;
             }
 
-            const ips = stdout.match(regexIP)
-            const macs = stdout.match(regexMAC)
+            const ips = stdout.match(regexIP) || []
+            const macs = stdout.match(regexMAC) || []
 
             const devicesList = createDeviceList(ips,macs);
             resolve(devicesList);
@@ -72,7 +72,7 @@ async function findByScan(){
         try {
             let ws = new websocket.WebSocket(`ws://${esp.ip}/ws`);
 
-            let messagePromise = new Promise((resolve, reject) => {
+            const messagePromise = async() => new Promise((resolve, reject) => {
                 let timeout = setTimeout(() => {
                     reject(new Error('Conexão com o WebSocket excedeu o tempo limite'));
                     ws.close();
@@ -80,29 +80,41 @@ async function findByScan(){
                 
                 ws.onmessage = event => {
                     if (event.data === "data") {
-                        arrayEsp.push(esp);
                         clearTimeout(timeout);
-                        resolve();
+                        arrayEsp.push(esp);
+                        resolve(esp);
+                        ws.close();
                     }
                 };
-                ws.onerror = reject;
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    reject(new Error (`Houve um erro na requisição do dispositivo ${esp.ip}`));
+                    ws.close();
+
+                };
                 ws.onclose = () => {
                     clearTimeout(timeout);
                     reject(new Error("Conexão com o WebSocket fechada"));
+                    ws.close();
                 };
+            })
+
+            await messagePromise()
+            .then((res) => {
+                console.log(`Conexão com websocket realizada com sucesso ${res.ip}`)}
+            )
+            .catch((err) => {
+                console.error(err);
             });
 
-            await messagePromise;
-            return null;
-
         } catch (error) {
-            console.error("Erro: ", error);
+            console.error(error);
             return null;
         }
     });
 
-    await Promise.all(connectionPromises);
-
+    await Promise.all(connectionPromises.map(p => p.catch(e => console.error(e))));
+    
     return arrayEsp;
 }
 
@@ -118,6 +130,7 @@ function newCache(){
     	child_process.exec(command, (error, stdout, stderr) => {
   		if (error) {
     			console.error(`Erro ao executar o script: ${error}`);
+                reject(error);
     			return;
   		}
   		console.log(`Saída do script: ${stdout}`);
@@ -137,6 +150,7 @@ async function findByService(){
             let timeout = setTimeout(() => {
                 const devices = createDeviceList(hostnames, macs);
                 resolve(devices);
+                service.stop
             }, 10000);
             if (service.txt.mac){
                 hostnames.push(service.host);
