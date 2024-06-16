@@ -78,6 +78,10 @@ async function findByScan(){
                     ws.close();
                 }, 5000);
                 
+                ws.onopen = () =>{
+                    ws.send("data");
+                }
+
                 ws.onmessage = event => {
                     if (event.data === "data") {
                         clearTimeout(timeout);
@@ -140,6 +144,7 @@ function newCache(){
 }
 
 async function findByService(){
+    console.log(process.platform);
     var service = new dns.Bonjour()
     
     const hostnames = []
